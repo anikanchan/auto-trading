@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent: starts the trading bot when the Mac wakes/logs in on
+  weekday mornings, and keeps it running until scripts/shutdown.sh stops
+  it (and shuts the Mac down) at the configured shutdown_time.
+
+  Install:
+    cp scripts/com.autotrading.bot.plist ~/Library/LaunchAgents/
+    # Edit the paths below to match your checkout location and venv.
+    launchctl load ~/Library/LaunchAgents/com.autotrading.bot.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.autotrading.bot.plist
+    rm ~/Library/LaunchAgents/com.autotrading.bot.plist
+
+  Logs are written to data/bot.log / data/bot.err under the app directory.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.autotrading.bot</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/anikanchan/Workspace/auto-trading/app/venv/bin/python</string>
+        <string>/Users/anikanchan/Workspace/auto-trading/app/main.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app/data/bot.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app/data/bot.err</string>
+
+    <!-- Run once per day at 9:05 AM (after the Pi's 9:00 AM WoL packet),
+         Mon-Fri. launchd will also start it immediately if the Mac is
+         already awake and the agent is (re)loaded after this time. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+            <key>Weekday</key>
+            <integer>1</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+            <key>Weekday</key>
+            <integer>2</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+            <key>Weekday</key>
+            <integer>3</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+            <key>Weekday</key>
+            <integer>4</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+            <key>Weekday</key>
+            <integer>5</integer>
+        </dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Restart automatically if the bot crashes during market hours. -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+</dict>
+</plist>

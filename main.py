@@ -18,7 +18,9 @@ Run with: python main.py
 from __future__ import annotations
 
 import datetime as dt
+import os
 import time
+from pathlib import Path
 
 from alerts.messenger import Messenger
 from commands.handler import CommandHandler
@@ -29,6 +31,17 @@ from scheduler.jobs import TradingScheduler
 
 # How often to poll for inbound iMessage commands.
 COMMAND_POLL_SECONDS = 10
+
+PID_FILE = Path(__file__).resolve().parent / "data" / "bot.pid"
+
+
+def _write_pid_file() -> None:
+    PID_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PID_FILE.write_text(str(os.getpid()))
+
+
+def _remove_pid_file() -> None:
+    PID_FILE.unlink(missing_ok=True)
 
 
 def process_inbound_messages(
@@ -66,6 +79,7 @@ def build_app() -> tuple[TradingScheduler, CommandHandler, Messenger]:
 def run() -> None:
     scheduler, command_handler, messenger = build_app()
 
+    _write_pid_file()
     ledger.log_event(ledger.CATEGORY_SYSTEM, "Bot starting")
     messenger.send_alert(ledger.CATEGORY_SYSTEM, "Auto-trading bot started.")
 
@@ -85,6 +99,7 @@ def run() -> None:
         scheduler.stop()
         ledger.log_event(ledger.CATEGORY_SYSTEM, "Bot stopped")
         messenger.send_alert(ledger.CATEGORY_SYSTEM, "Auto-trading bot stopped.")
+        _remove_pid_file()
 
 
 if __name__ == "__main__":
