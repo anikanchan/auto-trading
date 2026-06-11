@@ -52,6 +52,10 @@ class Messenger:
     def send(self, message: str) -> None:
         self._send_fn(self.allowed_number, message)
 
+    def poll_new_messages(self, since: dt.datetime) -> list[IncomingMessage]:
+        """Return inbound messages from the allowed sender received after `since`."""
+        return self._poll_fn(since, self.allowed_number)
+
     def send_alert(self, category: str, message: str, details: dict | None = None) -> None:
         """Send a notification and log it to the transaction ledger."""
         self.send(message)
