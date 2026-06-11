@@ -78,6 +78,7 @@ class TradingScheduler:
         self.confirm_callback = confirm_callback
         self.scheduler = BackgroundScheduler(timezone="America/New_York")
         self.paused = False
+        self.stopped_symbols: set[str] = set()
 
     # ------------------------------------------------------------------
     # Jobs
@@ -94,6 +95,8 @@ class TradingScheduler:
         results = []
         for strategy, universe in self.strategies:
             for symbol in universe:
+                if symbol in self.stopped_symbols:
+                    continue
                 try:
                     bars = self._get_bars(strategy, symbol)
                 except Exception as exc:  # noqa: BLE001 - log and continue scanning

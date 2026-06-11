@@ -197,6 +197,51 @@ class OrderManager:
 
         order = OrderRequest(symbol=signal.symbol, side=signal.action.value, quantity=quantity, price=price)
 
+        return self._evaluate_and_submit(signal, order, state, price, limit_price, confirm_callback)
+
+    def process_manual_order(
+        self,
+        symbol: str,
+        side: str,
+        quantity: float,
+        limit_price: float | None = None,
+        confirm_callback: ConfirmCallback | None = None,
+        strategy: str = "manual",
+    ) -> dict:
+        """Process a manually-requested order (from a BUY/SELL command) with
+        an explicit quantity. Goes through the same risk/limit checks and
+        ledger logging as strategy-driven orders."""
+        from data.market_data import MarketData
+
+        price = MarketData().get_latest_price(symbol)
+        state = self.build_portfolio_state()
+
+        order = OrderRequest(symbol=symbol, side=side, quantity=quantity, price=price)
+        signal = Signal(
+            symbol=symbol,
+            action=SignalAction.BUY if side == "buy" else SignalAction.SELL,
+            reason=f"Manual {side.upper()} command",
+            strategy=strategy,
+            price=price,
+        )
+
+        ledger.log_event(
+            ledger.CATEGORY_SIGNAL,
+            f"{strategy}: {side.upper()} {symbol} x{quantity:g}",
+            {"limit_price": limit_price, "price": price},
+        )
+
+        return self._evaluate_and_submit(signal, order, state, price, limit_price, confirm_callback)
+
+    def _evaluate_and_submit(
+        self,
+        signal: Signal,
+        order: OrderRequest,
+        state: PortfolioState,
+        price: float,
+        limit_price: float | None,
+        confirm_callback: ConfirmCallback | None,
+    ) -> dict:
         # Limit-price pre-flight check (for manual BUY/SELL commands with a price)
         limit_decision = self.check_limit_price(order.side, limit_price, price)
         if not limit_decision.approved:

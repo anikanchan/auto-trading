@@ -17,6 +17,12 @@ class FakeBroker:
         self.positions = positions or []
         self.submitted_orders = []
         self._next_order_id = 1
+        self.mode = "paper"
+        self.flatten_called = False
+
+    def flatten_all_positions(self) -> None:
+        self.flatten_called = True
+        self.positions = []
 
     def get_account(self) -> AccountInfo:
         return AccountInfo(
