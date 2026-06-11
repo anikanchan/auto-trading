@@ -1,0 +1,23 @@
+# Core
+PyYAML>=6.0
+keyring>=24.0
+
+# Broker / market data
+alpaca-py>=0.33
+
+# Strategy / data analysis
+pandas>=2.0
+pandas-ta>=0.3.14b0
+numpy>=1.26
+
+# Database
+SQLAlchemy>=2.0
+
+# Scheduler
+APScheduler>=3.10
+
+# Dashboard
+streamlit>=1.30
+
+# Testing
+pytest>=8.0

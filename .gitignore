@@ -1,0 +1,21 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*credentials*
+*secret*
+
+# Local data
+data/*.db
+data/*.sqlite*
+*.log
+
+# OS
+.DS_Store
