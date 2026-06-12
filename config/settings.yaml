@@ -6,6 +6,10 @@
 # Trading mode
 mode: paper                      # paper | live
 
+# Broker
+alpaca:
+  account_type: business         # personal | business
+
 # Symbol universe
 watchlist:
   - SPY

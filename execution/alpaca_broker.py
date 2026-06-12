@@ -18,7 +18,7 @@ from alpaca.trading.requests import (
 )
 
 from config.loader import get as get_config
-from config.secrets import get_secret
+from config.secrets import get_alpaca_credentials
 
 
 @dataclass
@@ -38,8 +38,8 @@ class AlpacaBroker:
         self.mode = get_config("mode", "paper")
         is_paper = self.mode != "live"
 
-        api_key = get_secret("alpaca-api-key-id")
-        secret_key = get_secret("alpaca-api-secret-key")
+        self.account_type = get_config("alpaca.account_type", "personal")
+        api_key, secret_key = get_alpaca_credentials()
 
         self.client = TradingClient(
             api_key=api_key,
@@ -131,6 +131,7 @@ if __name__ == "__main__":
     broker = AlpacaBroker()
     account = broker.get_account()
     print(f"Mode: {broker.mode}")
+    print(f"Account type: {broker.account_type}")
     print(f"Account ID: {account.account_id}")
     print(f"Status: {account.status}")
     print(f"Cash: ${account.cash:,.2f}")

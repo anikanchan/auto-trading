@@ -27,6 +27,18 @@ python -m config.secrets set alpaca-api-key-id
 python -m config.secrets set alpaca-api-secret-key
 ```
 
+Using a business (entity) Alpaca account instead? Set `alpaca.account_type:
+business` in `config/settings.yaml` and store the keys under the business
+names instead:
+
+```bash
+python -m config.secrets set alpaca-business-api-key-id
+python -m config.secrets set alpaca-business-api-secret-key
+```
+
+Both sets of keys can be stored side by side — the bot loads the pair
+matching the configured account type at startup.
+
 You'll be prompted to paste each value (input is hidden). These are stored
 securely in the macOS Keychain under the `auto-trading` service — never in
 plaintext files.

@@ -11,6 +11,9 @@ __pycache__/
 *.pem
 *credentials*
 *secret*
+# ... but secrets *code* (Keychain accessors, no secret values) must be tracked
+!config/secrets.py
+!tests/test_secrets.py
 
 # Local data
 data/*.db

@@ -14,15 +14,14 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 
-from config.secrets import get_secret
+from config.secrets import get_alpaca_credentials
 
 
 class MarketData:
     """Fetches historical and latest price data via Alpaca."""
 
     def __init__(self) -> None:
-        api_key = get_secret("alpaca-api-key-id")
-        secret_key = get_secret("alpaca-api-secret-key")
+        api_key, secret_key = get_alpaca_credentials()
         self.client = StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
 
     def get_daily_bars(
