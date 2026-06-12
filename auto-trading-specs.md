@@ -15,6 +15,22 @@ A minimal-intervention automated trading system supporting both **intraday** and
 
 Alpaca provides commission-free trading, paper trading environment, and clean REST + WebSocket APIs for both equities and options.
 
+### Alpaca Account Type
+
+Configurable choice between a **personal** (individual) account and a **business** (entity) account — set via `alpaca.account_type` in `settings.yaml`:
+
+| | Personal (Individual) | Business (Entity) |
+|---|---|---|
+| Onboarding | Standard individual signup | Entity onboarding (LLC/corp docs, EIN required) |
+| Ownership | Trades under your own name/SSN | Trades under the entity |
+| Taxes | Gains on personal return (1099) | Gains flow to the entity; possible trader tax status benefits |
+| Liability | Personal | Limited to the entity |
+| API | Same REST + WebSocket API and keys | Same REST + WebSocket API and keys |
+
+- The trading API is identical for both — only the account opened on Alpaca's side and the API keys stored in Keychain differ
+- Paper trading is available for both account types
+- Default: `personal`; switch to `business` only if/when an LLC is set up for trading
+
 ---
 
 ## Trading Strategies
@@ -78,7 +94,8 @@ Alpaca provides commission-free trading, paper trading environment, and clean RE
 └─────────────────────────┬───────────────────┘
                           ▼
 ┌─────────────────────────────────────────────┐
-│       iMessage Confirmation (AppleScript)   │
+│   Messaging Confirmation (iMessage or       │
+│   WhatsApp — configurable platform)         │
 │  Sends trade details → waits for YES/NO     │
 │  Timeout: 5 min → auto-skip trade           │
 └─────────────────────────┬───────────────────┘
@@ -123,19 +140,33 @@ Alpaca provides commission-free trading, paper trading environment, and clean RE
 ### 5. Scheduler
 - Daily jobs: pre-market scan, end-of-day signal generation and rebalance
 - Intraday jobs: signal check every 1–5 minutes during market hours (9:30–16:00 ET)
-- End-of-day report job: compiles and sends daily summary via iMessage at 4:25 PM ET
+- End-of-day report job: compiles and sends daily summary via the configured messaging platform at 4:25 PM ET
 - Shutdown job: runs `sudo shutdown -h now` at 4:30 PM ET after market close
 - Auto-restart on crash with state recovery from database
 
 ### 6. Monitoring & Alerts
 - Streamlit dashboard: live P&L, open positions, recent trades, strategy status
-- Alerts via **iMessage** (AppleScript on Mac) for:
+- Alerts via the configured **messaging platform** (`messaging.channel` in `settings.yaml` — see Messaging Platform section) for:
   - Trade confirmation request — bot waits for YES/NO reply before executing
   - Trade executed confirmation
   - Risk limit triggered
   - System error
-- Bot reads replies from Messages SQLite database (`~/Library/Messages/chat.db`)
 - Confirmation timeout: **5 minutes** — if no reply received, trade is skipped and logged
+
+#### Messaging Platform (configurable)
+
+A single messenger abstraction with two interchangeable backends, selected via `messaging.channel: imessage | whatsapp`:
+
+| | iMessage | WhatsApp (Twilio) |
+|---|---|---|
+| Outbound | AppleScript on the Mac | Twilio WhatsApp API (HTTPS) |
+| Inbound replies | Polls Messages SQLite DB (`~/Library/Messages/chat.db`) | Polls Twilio API for inbound messages (no public webhook needed on local Mac; webhook mode used in the AWS variant) |
+| Dependencies | None — native macOS | Twilio account + WhatsApp Business API approval (free sandbox for testing) |
+| Encryption | Apple E2E (see Messaging Encryption) | Meta E2E / Signal Protocol (see Messaging Encryption) |
+| Cost | Free | Per-message Twilio fees |
+
+- Both backends implement the same interface: send alert, send report, await YES/NO confirmation, poll inbound commands
+- Default: `imessage` (zero dependencies on a Mac); `whatsapp` recommended if the bot is ever moved off macOS (see AWS specs)
 
 #### Transaction Ledger
 - **Every single transaction is recorded** in the database — no exceptions, including:
@@ -150,29 +181,38 @@ Alpaca provides commission-free trading, paper trading environment, and clean RE
 - Stored in the `trades` and `audit_log` tables (see Database section)
 
 #### Messaging Encryption
-- iMessage uses **Apple end-to-end encryption** by default — messages are encrypted on device and can only be read by sender and recipient
-- No configuration needed — E2E encryption is automatic when both parties use iMessage (blue bubbles)
-- Messages never stored in plaintext on Apple servers
-- Falls back to SMS (unencrypted) if iMessage is unavailable — bot should detect this and alert rather than send sensitive trade data over SMS
+- **iMessage**: Apple end-to-end encryption by default — messages are encrypted on device and can only be read by sender and recipient
+  - No configuration needed — E2E encryption is automatic when both parties use iMessage (blue bubbles)
+  - Messages never stored in plaintext on Apple servers
+  - Falls back to SMS (unencrypted) if iMessage is unavailable — bot should detect this and alert rather than send sensitive trade data over SMS
+- **WhatsApp**: Meta end-to-end encryption (Signal Protocol) — messages cannot be read by Twilio or any third party in transit
+  - Requires WhatsApp installed on your iPhone and a Twilio WhatsApp sender (sandbox or approved Business API number)
+  - No unencrypted SMS fallback is used — if WhatsApp delivery fails, the bot logs an error and alerts on the dashboard
 
 #### Credentials & Secrets Management
 All sensitive values are stored in the **macOS Keychain** — never in plaintext config files, scripts, or version control:
 
 | Secret | Description |
 |---|---|
-| `alpaca-api-key-id` | Alpaca API key ID |
-| `alpaca-api-secret-key` | Alpaca API secret key |
-| `alpaca-account-id` | Alpaca brokerage account ID |
+| `alpaca-api-key-id` | Alpaca API key ID (personal account) |
+| `alpaca-api-secret-key` | Alpaca API secret key (personal account) |
+| `alpaca-account-id` | Alpaca brokerage account ID (personal account) |
+| `alpaca-business-api-key-id` | Alpaca API key ID (business account, if `alpaca.account_type: business`) |
+| `alpaca-business-api-secret-key` | Alpaca API secret key (business account) |
+| `alpaca-business-account-id` | Alpaca brokerage account ID (business account) |
 | `dashboard-basic-auth` | Dashboard login credentials |
 | `polygon-api-key` | Polygon.io API key (market data fallback) |
 | `db-encryption-key` | Local database encryption passphrase |
+| `twilio-account-sid` | Twilio Account SID (WhatsApp platform only) |
+| `twilio-auth-token` | Twilio Auth Token (WhatsApp platform only) |
+| `twilio-whatsapp-number` | Twilio WhatsApp sender number (WhatsApp platform only) |
 
 **Access controls:**
 - Secrets accessed at runtime via Python `keyring` library, which reads from macOS Keychain
 - Bot process requests Keychain access on first run — macOS prompts for approval, then remembers the decision per-app
 - `settings.yaml` contains **no secrets** — only non-sensitive config (risk params, symbol universe, schedules)
 - `.gitignore` excludes any `.env`, `*.pem`, `*credentials*`, and `*.db` files from version control
-- iMessage allowed-sender phone number stored in Keychain, not hardcoded
+- Allowed-sender phone number (iMessage or WhatsApp) stored in Keychain, not hardcoded
 - Local PostgreSQL/SQLite database file permissions restricted to the bot's user account (`chmod 600`)
 - Full disk encryption (FileVault) should be enabled on the Mac as a baseline — protects all stored secrets and trade data if the device is lost or stolen
 
@@ -182,6 +222,10 @@ All non-sensitive, version-controllable settings live in `settings.yaml`:
 ```yaml
 # Trading mode
 mode: paper                      # paper | live
+
+# Broker
+alpaca:
+  account_type: personal         # personal | business
 
 # Symbol universe
 watchlist:
@@ -220,11 +264,12 @@ schedule:
 
 # Messaging
 messaging:
+  channel: imessage              # imessage | whatsapp
   confirmation_timeout_minutes: 5
 ```
 
 This file is safe to commit to version control — it contains no API keys, account IDs, or credentials.
-- **End-of-day report** sent via iMessage at 4:25 PM ET (before shutdown), including:
+- **End-of-day report** sent via the configured messaging platform at 4:25 PM ET (before shutdown), including:
   - Trades executed today (symbol, direction, entry/exit, P&L)
   - Net P&L for the day ($ and %)
   - Open positions carried overnight
@@ -232,8 +277,8 @@ This file is safe to commit to version control — it contains no API keys, acco
   - Cash balance and portfolio value
 - Full audit log of every signal, decision, and order
 
-### 7. iMessage Command Interface
-Bot polls `~/Library/Messages/chat.db` for inbound messages from your phone number. Supported commands:
+### 7. Messaging Command Interface
+Bot polls for inbound messages from your registered number — `~/Library/Messages/chat.db` on iMessage, the Twilio inbound-message API on WhatsApp. Supported commands:
 
 | Command | Action |
 |---|---|
@@ -268,7 +313,7 @@ Bot polls `~/Library/Messages/chat.db` for inbound messages from your phone numb
   - Largest win / largest loss
   - Trades skipped or rejected (with reasons)
   - Risk events triggered
-- For longer ranges, summary is sent via iMessage and a detailed CSV export is made available on the Streamlit dashboard for download
+- For longer ranges, summary is sent via the configured messaging platform and a detailed CSV export is made available on the Streamlit dashboard for download
 - Commands are **case-insensitive**
 - Unrecognized messages are ignored and logged
 - All commands are logged to audit trail with timestamp
@@ -288,7 +333,7 @@ Bot polls `~/Library/Messages/chat.db` for inbound messages from your phone numb
 | Scheduler | APScheduler | Cron-like job scheduling |
 | Database | PostgreSQL | Trade history, positions, audit log |
 | Dashboard | Streamlit | Live monitoring UI |
-| Alerts | iMessage via AppleScript | Native Mac→iPhone, no third-party accounts |
+| Alerts | iMessage (AppleScript) or WhatsApp (Twilio) | Configurable via `messaging.channel`; iMessage is native Mac→iPhone with no third-party accounts |
 | Deployment | Runs locally on Mac | Woken daily by Raspberry Pi 3 via WoL |
 | Wake Controller | Raspberry Pi 3 + `wakeonlan` | Sends magic packet at 9:00 AM ET Mon–Fri |
 
@@ -360,7 +405,7 @@ sudo apt install wakeonlan -y
 
 ### Phase 2 — Monitoring
 - Streamlit dashboard: P&L, positions, trade log
-- iMessage trade confirmations and alerts
+- Trade confirmations and alerts via iMessage or WhatsApp (configurable)
 - PostgreSQL audit log
 
 ### Phase 3 — Strategy Expansion
@@ -399,7 +444,9 @@ auto-trading/
 ├── dashboard/
 │   └── app.py                 # Streamlit monitoring UI
 ├── alerts/
-│   └── notifier.py            # iMessage via AppleScript + reply polling
+│   ├── notifier.py            # Platform-agnostic messenger interface
+│   ├── imessage.py            # iMessage backend (AppleScript + chat.db polling)
+│   └── whatsapp.py            # WhatsApp backend (Twilio API send + inbound polling)
 ├── db/
 │   └── models.py              # SQLAlchemy models (trades, positions, logs)
 ├── pi/
