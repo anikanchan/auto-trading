@@ -5,6 +5,10 @@ from config.secrets import get_alpaca_credentials
 
 
 def test_personal_account_uses_default_keys(monkeypatch):
+    monkeypatch.setattr(
+        config.loader, "get", lambda key, default=None: "personal"
+        if key == "alpaca.account_type" else default
+    )
     monkeypatch.setenv("AUTOTRADING_ALPACA_API_KEY_ID", "personal-key")
     monkeypatch.setenv("AUTOTRADING_ALPACA_API_SECRET_KEY", "personal-secret")
     assert get_alpaca_credentials() == ("personal-key", "personal-secret")
