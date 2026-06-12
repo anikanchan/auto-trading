@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent: runs scripts/shutdown.sh at the configured shutdown_time
+  (default 4:30 PM ET, see config/settings.yaml schedule.shutdown_time),
+  Mon-Fri. Stops the bot gracefully and shuts the Mac down.
+
+  Install:
+    cp scripts/com.autotrading.shutdown.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.autotrading.shutdown.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.autotrading.shutdown.plist
+    rm ~/Library/LaunchAgents/com.autotrading.shutdown.plist
+
+  NOTE: requires passwordless sudo for `shutdown` — see scripts/shutdown.sh.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.autotrading.shutdown</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/anikanchan/Workspace/auto-trading/app/scripts/shutdown.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app/data/shutdown.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/anikanchan/Workspace/auto-trading/app/data/shutdown.err</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+            <key>Weekday</key>
+            <integer>1</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+            <key>Weekday</key>
+            <integer>2</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+            <key>Weekday</key>
+            <integer>3</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+            <key>Weekday</key>
+            <integer>4</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+            <key>Weekday</key>
+            <integer>5</integer>
+        </dict>
+    </array>
+</dict>
+</plist>

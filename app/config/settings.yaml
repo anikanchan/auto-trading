@@ -1,0 +1,62 @@
+# Automated Stock Trading App — Configuration
+# This file contains NO secrets. API keys, account IDs, and credentials
+# are stored in the OS keychain (local) or AWS Secrets Manager (cloud).
+# See secrets.py for how sensitive values are loaded.
+
+# Trading mode
+mode: paper                      # paper | live
+
+# Broker
+alpaca:
+  account_type: business         # personal | business
+
+# Symbol universe
+watchlist:
+  - SPY
+  - QQQ
+  - AAPL
+
+# Strategy parameters
+strategies:
+  sma_crossover:
+    enabled: true
+    fast_period: 20
+    slow_period: 50
+    universe:
+      - SPY
+      - QQQ
+  orb:
+    enabled: true
+    range_minutes: 30
+    universe:
+      - SPY
+      - QQQ
+  rsi_mean_reversion:
+    enabled: true
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_exit: 50
+
+# Risk parameters
+risk:
+  max_portfolio_deployed_pct: 50
+  max_position_pct: 5
+  daily_loss_kill_switch_pct: -2
+  stop_loss_pct: -1.5
+  max_concurrent_positions: 10
+
+# Schedule (times in ET)
+schedule:
+  market_open: "09:30"
+  market_close: "16:00"
+  eod_report_time: "16:25"
+  shutdown_time: "16:30"
+
+# Messaging
+messaging:
+  confirmation_timeout_minutes: 5
+  channel: imessage             # imessage | whatsapp
+
+# Database
+database:
+  path: "data/trading.db"

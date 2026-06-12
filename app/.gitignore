@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*credentials*
+*secret*
+# ... but secrets *code* (Keychain accessors, no secret values) must be tracked
+!config/secrets.py
+!tests/test_secrets.py
+
+# Local data
+data/*.db
+data/*.sqlite*
+*.log
+
+# OS
+.DS_Store
