@@ -119,21 +119,28 @@ def _parse_order_args(name: str, tokens: list[str]) -> dict:
     if quantity <= 0:
         raise CommandParseError(f"{name} quantity must be positive")
 
-    args = {"symbol": symbol, "quantity": quantity, "limit_price": None}
+    args = {"symbol": symbol, "quantity": quantity, "limit_price": None, "day_price": None}
+
+    limit_modifier = "MAX" if name == "BUY" else "MIN"
 
     if len(tokens) >= 4:
         modifier = tokens[2].upper()
-        expected = "MAX" if name == "BUY" else "MIN"
-        if modifier != expected:
-            raise CommandParseError(f"{name} price modifier must be {expected}, e.g. {name} AAPL 10 {expected} 100.00")
+        if modifier not in (limit_modifier, "DAY"):
+            raise CommandParseError(
+                f"{name} price modifier must be {limit_modifier} or DAY, "
+                f"e.g. {name} AAPL 10 {limit_modifier} 100.00"
+            )
         try:
-            args["limit_price"] = float(tokens[3])
+            price = float(tokens[3])
         except ValueError as exc:
-            raise CommandParseError(f"{name} {expected} price must be a number") from exc
+            raise CommandParseError(f"{name} {modifier} price must be a number") from exc
+        if price <= 0:
+            raise CommandParseError(f"{name} {modifier} price must be positive")
+        args["day_price" if modifier == "DAY" else "limit_price"] = price
     elif len(tokens) == 3:
         raise CommandParseError(
             f"{name} with a price needs a modifier, e.g. {name} {symbol} {tokens[1]} "
-            f"{'MAX' if name == 'BUY' else 'MIN'} <price>"
+            f"{limit_modifier} <price> or {name} {symbol} {tokens[1]} DAY <price>"
         )
 
     return args

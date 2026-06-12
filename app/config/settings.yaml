@@ -52,6 +52,10 @@ schedule:
   eod_report_time: "16:25"
   shutdown_time: "16:30"
 
+# Day orders (BUY/SELL <ticker> <qty> DAY <price>)
+day_orders:
+  rebound_pct: 0.2               # execute once price retraces this % off the best level seen
+
 # Messaging
 messaging:
   confirmation_timeout_minutes: 5

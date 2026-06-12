@@ -78,18 +78,39 @@ def test_risk_requires_value():
 def test_buy_market_order():
     cmd = parse_command("BUY AAPL 10")
     assert cmd.name == "BUY"
-    assert cmd.args == {"symbol": "AAPL", "quantity": 10.0, "limit_price": None}
+    assert cmd.args == {"symbol": "AAPL", "quantity": 10.0, "limit_price": None, "day_price": None}
 
 
 def test_buy_with_max_price():
     cmd = parse_command("buy aapl 10 max 190.00")
     assert cmd.name == "BUY"
-    assert cmd.args == {"symbol": "AAPL", "quantity": 10.0, "limit_price": 190.0}
+    assert cmd.args == {"symbol": "AAPL", "quantity": 10.0, "limit_price": 190.0, "day_price": None}
 
 
 def test_sell_with_min_price():
     cmd = parse_command("SELL AAPL 5 MIN 185.00")
-    assert cmd.args == {"symbol": "AAPL", "quantity": 5.0, "limit_price": 185.0}
+    assert cmd.args == {"symbol": "AAPL", "quantity": 5.0, "limit_price": 185.0, "day_price": None}
+
+
+def test_buy_with_day_price():
+    cmd = parse_command("buy aapl 10 day 190.00")
+    assert cmd.name == "BUY"
+    assert cmd.args == {"symbol": "AAPL", "quantity": 10.0, "limit_price": None, "day_price": 190.0}
+
+
+def test_sell_with_day_price():
+    cmd = parse_command("SELL AAPL 5 DAY 200.50")
+    assert cmd.args == {"symbol": "AAPL", "quantity": 5.0, "limit_price": None, "day_price": 200.5}
+
+
+def test_day_price_must_be_a_number():
+    with pytest.raises(CommandParseError):
+        parse_command("BUY AAPL 10 DAY CHEAP")
+
+
+def test_day_price_must_be_positive():
+    with pytest.raises(CommandParseError):
+        parse_command("BUY AAPL 10 DAY -5")
 
 
 def test_sell_with_wrong_modifier_raises():

@@ -262,6 +262,10 @@ schedule:
   eod_report_time: "16:25"
   shutdown_time: "16:30"
 
+# Day orders (BUY/SELL <ticker> <qty> DAY <price>)
+day_orders:
+  rebound_pct: 0.2               # execute once price retraces this % off the best level seen
+
 # Messaging
 messaging:
   channel: imessage              # imessage | whatsapp
@@ -292,6 +296,8 @@ Bot polls for inbound messages from your registered number — `~/Library/Messag
 | `STOP <ticker>` | Stop trading a specific symbol |
 | `BUY <ticker> <quantity> [MAX <price>]` | Buy specified quantity, optionally capped at max price, e.g. `BUY AAPL 10 MAX 190.00` |
 | `SELL <ticker> <quantity> [MIN <price>]` | Sell specified quantity, optionally with minimum acceptable price, e.g. `SELL AAPL 10 MIN 185.00` |
+| `BUY <ticker> <quantity> DAY <price>` | Day order: watch the price all day, buy when it reaches the target — seeking a lower fill, e.g. `BUY AAPL 10 DAY 190.00` |
+| `SELL <ticker> <quantity> DAY <price>` | Day order: watch the price all day, sell when it reaches the target — seeking a higher fill, e.g. `SELL AAPL 10 DAY 200.00` |
 | `HELP` | Reply with list of available commands |
 
 - `BUY` and `SELL` orders are still gated through the Risk Manager — rejected if they breach position size or portfolio limits
@@ -302,6 +308,19 @@ Bot polls for inbound messages from your registered number — `~/Library/Messag
   - `"BUY 10 AAPL @ limit $190.00 (current $189.50) — reply YES to confirm"`
   - `"SELL 10 AAPL @ limit $185.00 (current $186.20) — reply YES to confirm"`
 - If current price already breaches the limit (e.g. BUY MAX $190 but price is $192), bot rejects immediately with a notification
+
+#### Day Orders (`DAY <price>`)
+A day order doesn't execute immediately — the bot watches the price for the rest of the trading day and tries to beat the given target:
+
+1. **Waiting** — until the price touches the target (≤ target for BUY, ≥ target for SELL)
+2. **Armed** — the bot keeps tracking the best price seen (lowest for BUY, highest for SELL); if the price moves back through the target before executing, it returns to waiting in case it touches again later
+3. **Execute** — once the price retraces off the best level by a configurable rebound percentage (`day_orders.rebound_pct`, default 0.2%), the order is submitted with a **limit at the target price** — so the bot buys near the local low / sells near the local high where possible, and the fill is never worse than the target
+
+- Confirmation (YES/NO) happens once, when the day order is placed; execution is then automatic
+- Day orders still pass through the Risk Manager at execution time
+- The price check runs every minute during market hours; active day orders are shown in `STATUS`
+- Unfilled day orders **expire at market close** with a notification
+- There is no upfront price rejection: a BUY DAY target below the current price (or SELL DAY above) is the normal use case
 
 #### HISTORY Command Details
 - `HISTORY` with no argument: returns last 7 days of transactions

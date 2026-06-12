@@ -26,6 +26,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from config.loader import get as get_config
 from data.market_data import MarketData
+from execution.day_orders import DayOrderWatcher
 from execution.order_manager import ConfirmCallback, OrderManager
 from monitoring import ledger
 from strategies.base import Strategy
@@ -71,11 +72,15 @@ class TradingScheduler:
         market_data: MarketData | None = None,
         strategies: list[tuple[Strategy, list[str]]] | None = None,
         confirm_callback: ConfirmCallback | None = None,
+        day_order_notify: Callable[[str], None] | None = None,
     ) -> None:
         self.order_manager = order_manager or OrderManager()
         self.market_data = market_data or MarketData()
         self.strategies = strategies if strategies is not None else load_strategies_from_config()
         self.confirm_callback = confirm_callback
+        self.day_order_watcher = DayOrderWatcher(
+            self.order_manager, market_data=self.market_data, notify=day_order_notify
+        )
         self.scheduler = BackgroundScheduler(timezone="America/New_York")
         self.paused = False
         self.stopped_symbols: set[str] = set()
@@ -127,6 +132,18 @@ class TradingScheduler:
         lookback_days = max(strategy.min_bars_required() * 2, 60)
         start = end - dt.timedelta(days=lookback_days)
         return self.market_data.get_daily_bars(symbol, start, end)
+
+    def run_day_order_check(self) -> list[dict]:
+        """Poll active day orders against the latest prices. Runs every
+        minute during market hours; cheap no-op when no day orders exist.
+        Day orders are user-initiated, so they keep running while paused."""
+        if not self.day_order_watcher.active:
+            return []
+        return self.day_order_watcher.poll()
+
+    def expire_day_orders(self) -> None:
+        """Expire unfilled day orders at market close."""
+        self.day_order_watcher.expire_all()
 
     def run_kill_switch_check(self) -> bool:
         """Refresh today's P&L snapshot and trip the kill-switch if the
@@ -207,6 +224,22 @@ class TradingScheduler:
             hour=f"{open_hour}-{close_hour}",
             minute="*/5",
             id="kill_switch_check",
+        )
+        self.scheduler.add_job(
+            self.run_day_order_check,
+            "cron",
+            day_of_week="mon-fri",
+            hour=f"{open_hour}-{close_hour}",
+            minute="*",
+            id="day_order_check",
+        )
+        self.scheduler.add_job(
+            self.expire_day_orders,
+            "cron",
+            day_of_week="mon-fri",
+            hour=close_hour,
+            minute=close_minute,
+            id="expire_day_orders",
         )
         self.scheduler.add_job(
             self.run_eod_report,

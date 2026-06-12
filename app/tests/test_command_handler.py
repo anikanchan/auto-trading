@@ -126,6 +126,45 @@ def test_buy_with_max_below_current_price_rejected(handler, fake_market_data):
     assert handler.pending_order is None
 
 
+def test_buy_day_then_yes_arms_day_order(handler, fake_market_data):
+    fake_market_data.price = 100.0
+    response = handler.handle("BUY AAPL 10 DAY 95.00")
+    assert "when price <= $95.00" in response
+    assert "reply YES to confirm" in response
+
+    response = handler.handle("YES")
+    assert "Day order active" in response
+    assert len(handler.scheduler.day_order_watcher.active) == 1
+    # Nothing is submitted until the watcher triggers.
+    assert handler.order_manager.broker.submitted_orders == []
+
+
+def test_buy_day_not_rejected_when_target_below_current(handler, fake_market_data):
+    # Unlike MAX, a DAY target below the current price is the whole point.
+    fake_market_data.price = 100.0
+    response = handler.handle("BUY AAPL 10 DAY 90.00")
+    assert not response.startswith("Rejected:")
+    assert handler.pending_order is not None
+
+
+def test_buy_day_then_no_cancels(handler, fake_market_data):
+    fake_market_data.price = 100.0
+    handler.handle("SELL AAPL 5 DAY 110.00")
+    response = handler.handle("NO")
+    assert response == "Order cancelled."
+    assert handler.scheduler.day_order_watcher.active == []
+
+
+def test_status_shows_active_day_orders(handler, fake_market_data):
+    fake_market_data.price = 100.0
+    handler.handle("BUY AAPL 10 DAY 95.00")
+    handler.handle("YES")
+
+    status = handler.handle("STATUS")
+    assert "Day orders:" in status
+    assert "BUY 10 AAPL today when price <= $95.00" in status
+
+
 def test_history_report_includes_summary(handler):
     with get_session() as session:
         session.add(

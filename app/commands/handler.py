@@ -31,6 +31,8 @@ HELP_TEXT = (
     "STOP <ticker> - stop trading a specific symbol\n"
     "BUY <ticker> <qty> [MAX <price>] - buy (limit if MAX given)\n"
     "SELL <ticker> <qty> [MIN <price>] - sell (limit if MIN given)\n"
+    "BUY <ticker> <qty> DAY <price> - watch today, buy when price <= target (seeks lower)\n"
+    "SELL <ticker> <qty> DAY <price> - watch today, sell when price >= target (seeks higher)\n"
     "HELP - this message"
 )
 
@@ -94,6 +96,11 @@ class CommandHandler:
             lines.append(f"  {p['symbol']}: {p['qty']} @ ${p['avg_entry_price']:.2f}")
         if self.scheduler.stopped_symbols:
             lines.append(f"Stopped symbols: {', '.join(sorted(self.scheduler.stopped_symbols))}")
+        day_orders = self.scheduler.day_order_watcher.active
+        if day_orders:
+            lines.append("Day orders:")
+            for order in day_orders:
+                lines.append(f"  {order.describe()}")
 
         return "\n".join(lines)
 
@@ -177,10 +184,29 @@ class CommandHandler:
         symbol = command.args["symbol"]
         quantity = command.args["quantity"]
         limit_price = command.args["limit_price"]
+        day_price = command.args.get("day_price")
 
         from data.market_data import MarketData
 
         current_price = MarketData().get_latest_price(symbol)
+
+        if day_price is not None:
+            # Day orders have no upfront price check — any relation between
+            # the current price and the target is a valid starting point.
+            self.pending_order = {
+                "symbol": symbol,
+                "side": side,
+                "quantity": quantity,
+                "limit_price": None,
+                "day_price": day_price,
+            }
+            relation = "<=" if side == "buy" else ">="
+            seeking = "lower" if side == "buy" else "higher"
+            return (
+                f"{side.upper()} {quantity:g} {symbol} today when price {relation} "
+                f"${day_price:.2f} (current ${current_price:.2f}), seeking a {seeking} "
+                f"fill — reply YES to confirm"
+            )
 
         decision = self.order_manager.check_limit_price(side, limit_price, current_price)
         if not decision.approved:
@@ -196,6 +222,7 @@ class CommandHandler:
             "side": side,
             "quantity": quantity,
             "limit_price": limit_price,
+            "day_price": None,
         }
 
         if limit_price is not None:
@@ -214,6 +241,15 @@ class CommandHandler:
 
         order = self.pending_order
         self.pending_order = None
+
+        if order.get("day_price") is not None:
+            day_order = self.scheduler.day_order_watcher.add(
+                symbol=order["symbol"],
+                side=order["side"],
+                quantity=order["quantity"],
+                target_price=order["day_price"],
+            )
+            return f"Day order active: {day_order.describe()}"
 
         result = self.order_manager.process_manual_order(
             symbol=order["symbol"],
