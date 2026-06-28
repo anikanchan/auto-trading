@@ -18,6 +18,13 @@ Setting a secret (one-time, from a script or REPL):
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env from the app root (app/.env). override=False means real shell env
+# vars take precedence over .env values, preserving the env > keyring order.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
 
 SERVICE_NAME = "auto-trading"
 

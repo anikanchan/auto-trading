@@ -15,22 +15,15 @@ from __future__ import annotations
 import datetime as dt
 import sqlite3
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+
+from alerts import IncomingMessage  # noqa: F401 — re-exported for backward compat
 
 DEFAULT_CHAT_DB_PATH = Path.home() / "Library" / "Messages" / "chat.db"
 
 # Apple's "Mac absolute time" epoch is 2001-01-01 00:00:00 UTC.
 APPLE_EPOCH = dt.datetime(2001, 1, 1, tzinfo=dt.timezone.utc)
-
-
-@dataclass
-class IncomingMessage:
-    text: str
-    sender: str
-    timestamp: dt.datetime
-    is_from_me: bool
 
 
 def datetime_to_apple_time(timestamp: dt.datetime) -> int:

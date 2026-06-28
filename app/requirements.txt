@@ -1,6 +1,8 @@
 # Core
 PyYAML>=6.0
 keyring>=24.0
+python-dotenv>=1.0
+twilio>=9.0
 
 # Broker / market data
 alpaca-py>=0.33

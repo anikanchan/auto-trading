@@ -19,7 +19,7 @@ import datetime as dt
 import time
 from typing import Callable
 
-from alerts.imessage import IncomingMessage, get_new_messages, send_imessage
+from alerts import IncomingMessage
 from config.loader import get as get_config
 from config.secrets import get_secret
 from monitoring import ledger
@@ -28,6 +28,24 @@ from strategies.base import Signal
 
 SendFn = Callable[[str, str], None]
 PollFn = Callable[[dt.datetime, str], list[IncomingMessage]]
+
+
+def _default_send_fn() -> SendFn:
+    channel = get_config("messaging.channel", "imessage")
+    if channel == "whatsapp":
+        from alerts.whatsapp import send_whatsapp
+        return send_whatsapp
+    from alerts.imessage import send_imessage
+    return send_imessage
+
+
+def _default_poll_fn() -> PollFn:
+    channel = get_config("messaging.channel", "imessage")
+    if channel == "whatsapp":
+        from alerts.whatsapp import get_new_whatsapp_messages
+        return get_new_whatsapp_messages
+    from alerts.imessage import get_new_messages
+    return get_new_messages
 
 
 class Messenger:
@@ -40,8 +58,8 @@ class Messenger:
         now_fn: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.timezone.utc),
     ) -> None:
         self.allowed_number = allowed_number or get_secret("allowed-phone-number")
-        self._send_fn = send_fn or send_imessage
-        self._poll_fn = poll_fn or get_new_messages
+        self._send_fn = send_fn or _default_send_fn()
+        self._poll_fn = poll_fn or _default_poll_fn()
         self._sleep_fn = sleep_fn
         self._now_fn = now_fn
 
