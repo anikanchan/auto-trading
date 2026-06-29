@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 #
-# Shutdown job: gracefully stops the trading bot and shuts the Mac down.
-# Scheduled via launchd (see com.autotrading.bot.plist) or `crontab -e`
-# at the configured `schedule.shutdown_time` (default 4:30 PM ET, after
-# the 4:25 PM EOD report).
+# Shutdown job: gracefully stops the trading bot and powers off the machine.
+# Scheduled via cron (see scripts/cron_setup.sh) at the configured
+# schedule.shutdown_time (default 4:30 PM ET, after the 4:25 PM EOD report).
 #
 # Usage: ./scripts/shutdown.sh
 #
-# Requires passwordless sudo for `shutdown` (add to /etc/sudoers via
-# `sudo visudo`):
-#   <your-username> ALL=(ALL) NOPASSWD: /sbin/shutdown
+# Requires passwordless sudo for systemctl poweroff (add via `sudo visudo`):
+#   <your-username> ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl poweroff -i
 
 set -euo pipefail
 
@@ -33,4 +31,4 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo "Shutting down..."
-sudo /sbin/shutdown -h now
+sudo systemctl poweroff -i

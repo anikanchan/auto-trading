@@ -16,8 +16,8 @@
 #
 # Requirements:
 #   - venv must exist at app/venv (run: python3 -m venv venv && pip install -r requirements.txt)
-#   - passwordless sudo for shutdown (add via `sudo visudo`):
-#       <your-username> ALL=(ALL) NOPASSWD: /sbin/shutdown
+#   - passwordless sudo for poweroff (add via `sudo visudo`):
+#       <your-username> ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl poweroff -i
 
 set -euo pipefail
 
