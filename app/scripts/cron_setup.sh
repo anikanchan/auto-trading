@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Linux setup: install cron jobs to start the trading bot and shut down
-# the machine on weekday market hours (all times US/Eastern, DST-aware).
+# Linux setup: install cron jobs to start and stop the trading bot
+# on weekday market hours (all times US/Eastern, DST-aware).
 #
 # Schedule:
 #   9:05 AM ET Mon-Fri  — start the bot (market opens 9:30 AM ET)
-#   4:30 PM ET Mon-Fri  — graceful bot stop + machine shutdown
+#   4:30 PM ET Mon-Fri  — graceful bot stop
 #
 # Run once from the repo root or app/ directory:
 #   chmod +x scripts/cron_setup.sh
@@ -16,8 +16,6 @@
 #
 # Requirements:
 #   - venv must exist at app/venv (run: python3 -m venv venv && pip install -r requirements.txt)
-#   - passwordless sudo for poweroff (add via `sudo visudo`):
-#       <your-username> ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl poweroff -i
 
 set -euo pipefail
 
@@ -38,9 +36,7 @@ SHUTDOWN_JOB="30 16 * * 1-5 ${SHUTDOWN} >> ${APP_DIR}/data/shutdown.log 2>&1"
 
 # Rebuild crontab: strip any existing auto-trading block, append the new one.
 (
-    crontab -l 2>/dev/null \
-        | grep -vF "${APP_DIR}" \
-        | grep -vF "auto-trading bot"
+    crontab -l 2>/dev/null | grep -vF "${APP_DIR}" | grep -vF "auto-trading bot" || true
     echo ""
     echo "# --- auto-trading bot (managed by scripts/cron_setup.sh) ---"
     echo "TZ=America/New_York"
@@ -51,7 +47,7 @@ SHUTDOWN_JOB="30 16 * * 1-5 ${SHUTDOWN} >> ${APP_DIR}/data/shutdown.log 2>&1"
 
 echo "Installed cron jobs (all times US/Eastern):"
 echo "  Start:    ${START_JOB}"
-echo "  Shutdown: ${SHUTDOWN_JOB}"
+echo "  Stop:     ${SHUTDOWN_JOB}"
 echo ""
 echo "Current crontab:"
 crontab -l
