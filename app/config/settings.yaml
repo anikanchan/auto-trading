@@ -59,7 +59,7 @@ day_orders:
 # Messaging
 messaging:
   confirmation_timeout_minutes: 5
-  channel: imessage             # imessage | whatsapp
+  channel: telegram             # imessage | whatsapp | telegram
 
 # Database
 database:

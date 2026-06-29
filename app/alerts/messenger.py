@@ -35,6 +35,9 @@ def _default_send_fn() -> SendFn:
     if channel == "whatsapp":
         from alerts.whatsapp import send_whatsapp
         return send_whatsapp
+    if channel == "telegram":
+        from alerts.telegram import send_telegram
+        return send_telegram
     from alerts.imessage import send_imessage
     return send_imessage
 
@@ -44,8 +47,17 @@ def _default_poll_fn() -> PollFn:
     if channel == "whatsapp":
         from alerts.whatsapp import get_new_whatsapp_messages
         return get_new_whatsapp_messages
+    if channel == "telegram":
+        from alerts.telegram import get_new_telegram_messages
+        return get_new_telegram_messages
     from alerts.imessage import get_new_messages
     return get_new_messages
+
+
+def _default_allowed_number() -> str:
+    channel = get_config("messaging.channel", "imessage")
+    secret = "telegram-chat-id" if channel == "telegram" else "allowed-phone-number"
+    return get_secret(secret)
 
 
 class Messenger:
@@ -57,7 +69,7 @@ class Messenger:
         sleep_fn: Callable[[float], None] = time.sleep,
         now_fn: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.timezone.utc),
     ) -> None:
-        self.allowed_number = allowed_number or get_secret("allowed-phone-number")
+        self.allowed_number = allowed_number or _default_allowed_number()
         self._send_fn = send_fn or _default_send_fn()
         self._poll_fn = poll_fn or _default_poll_fn()
         self._sleep_fn = sleep_fn

@@ -42,10 +42,13 @@ SECRET_KEYS = (
     "dashboard-basic-auth-user",
     "dashboard-basic-auth-password",
     "allowed-phone-number",
-    # AWS / Twilio variants (used when messaging.channel == whatsapp)
+    # Twilio (used when messaging.channel == whatsapp)
     "twilio-account-sid",
     "twilio-auth-token",
     "twilio-whatsapp-number",
+    # Telegram (used when messaging.channel == telegram)
+    "telegram-bot-token",
+    "telegram-chat-id",
 )
 
 
