@@ -24,6 +24,7 @@ from pathlib import Path
 
 from alerts.messenger import Messenger
 from commands.handler import CommandHandler
+from config.loader import get as get_config
 from db.models import init_db
 from execution.order_manager import OrderManager
 from monitoring import ledger
@@ -83,9 +84,11 @@ def build_app() -> tuple[TradingScheduler, CommandHandler, Messenger]:
 def run() -> None:
     scheduler, command_handler, messenger = build_app()
 
+    instance = get_config("instance_name", "Bot")
+
     _write_pid_file()
     ledger.log_event(ledger.CATEGORY_SYSTEM, "Bot starting")
-    messenger.send_alert(ledger.CATEGORY_SYSTEM, "Auto-trading bot started.")
+    messenger.send_alert(ledger.CATEGORY_SYSTEM, f"[{instance}] Auto-trading bot started.")
 
     scheduler.start()
 
@@ -102,7 +105,7 @@ def run() -> None:
     finally:
         scheduler.stop()
         ledger.log_event(ledger.CATEGORY_SYSTEM, "Bot stopped")
-        messenger.send_alert(ledger.CATEGORY_SYSTEM, "Auto-trading bot stopped.")
+        messenger.send_alert(ledger.CATEGORY_SYSTEM, f"[{instance}] Auto-trading bot stopped.")
         _remove_pid_file()
 
 

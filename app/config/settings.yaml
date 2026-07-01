@@ -3,6 +3,9 @@
 # are stored in the OS keychain (local) or AWS Secrets Manager (cloud).
 # See secrets.py for how sensitive values are loaded.
 
+# Instance name — identifies this machine in startup/shutdown messages
+instance_name: "MBAir"             # e.g. "MBAir | "MBPro-Linux"
+
 # Trading mode
 mode: paper                      # paper | live
 
@@ -12,9 +15,28 @@ alpaca:
 
 # Symbol universe
 watchlist:
-  - SPY
-  - QQQ
   - AAPL
+  - AMD
+  - BAC
+  - COF
+  - CVX
+  - F
+  - GOOG
+  - LNG
+  - META
+  - MSFT
+  - MU
+  - NFLX
+  - NVDA
+  - PYPL
+  - QQQ
+  - RIVN
+  - SCHW
+  - SMCI
+  - SPCX
+  - SPY
+  - TSLA
+  - VOO
 
 # Strategy parameters
 strategies:
