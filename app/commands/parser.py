@@ -60,8 +60,12 @@ def parse_command(text: str) -> Command:
     if name not in KNOWN_COMMANDS:
         return Command(name="UNKNOWN", raw=raw)
 
-    if name in ("STATUS", "PAUSE", "RESUME", "FLATTEN", "REPORT", "HELP", "YES", "NO", "KILL"):
+    if name in ("STATUS", "PAUSE", "RESUME", "FLATTEN", "REPORT", "HELP", "YES", "NO"):
         return Command(name=name, raw=raw)
+
+    if name == "KILL":
+        target = tokens[1] if len(tokens) > 1 else None
+        return Command(name=name, raw=raw, args={"target": target})
 
     if name == "STOP":
         if len(tokens) < 2:

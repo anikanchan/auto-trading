@@ -32,7 +32,7 @@ HELP_TEXT = (
     "HISTORY [7D|<N>D|YYYY-MM-DD..YYYY-MM-DD] - historical report\n"
     "RISK <param> <value> - update a risk parameter (e.g. RISK MAXPOS 3%)\n"
     "STOP <ticker> - stop trading a specific symbol\n"
-    "KILL - shut down this bot instance\n"
+    "KILL [instance] - shut down all instances, or a specific one (e.g. KILL MBAir)\n"
     "BUY <ticker> <qty> [MAX <price>] - buy (limit if MAX given)\n"
     "SELL <ticker> <qty> [MIN <price>] - sell (limit if MIN given)\n"
     "BUY <ticker> <qty> DAY <price> - watch today, buy when price <= target (seeks lower)\n"
@@ -126,6 +126,9 @@ class CommandHandler:
         return self.scheduler.run_eod_report()
 
     def _handle_kill(self, command: Command) -> str:
+        target = command.args.get("target")
+        if target and target.upper() != self.instance_name.upper():
+            return ""
         ledger.log_event(ledger.CATEGORY_SYSTEM, "KILL command received — shutting down")
         os.kill(os.getpid(), signal.SIGINT)
         return f"[{self.instance_name}] Shutting down..."
