@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual environment
+app/venv/
+
+# Runtime files
+app/data/bot.pid
+app/data/trading.db
+
+# Environment / secrets
+.env
+.env.*
