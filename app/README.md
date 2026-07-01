@@ -43,7 +43,39 @@ You'll be prompted to paste each value (input is hidden). These are stored
 securely in the macOS Keychain under the `auto-trading` service — never in
 plaintext files.
 
-### 4. Verify connectivity
+### 4. Configure messaging channel
+
+Set `messaging.channel` in `config/settings.yaml` to your preferred channel:
+`imessage`, `whatsapp`, or `telegram`.
+
+For **Telegram**:
+
+1. Create a bot via [@BotFather](https://t.me/BotFather) (`/newbot`) and copy the token.
+2. Send a message to your bot, then call `https://api.telegram.org/bot<TOKEN>/getUpdates` to find your chat ID.
+3. Store both secrets:
+
+```bash
+python -m config.secrets set telegram-bot-token
+python -m config.secrets set telegram-chat-id
+```
+
+For **iMessage**:
+
+```bash
+python -m config.secrets set allowed-phone-number   # your iPhone number or Apple ID email
+```
+
+### 5. Set instance name
+
+If running the bot on multiple machines, set a unique `instance_name` in
+`config/settings.yaml` so startup/shutdown Telegram messages identify which
+machine sent them:
+
+```yaml
+instance_name: "MBAir"   # e.g. "MBAir" | "MBPro" | "Mac Mini"
+```
+
+### 6. Verify connectivity
 
 ```bash
 python -m execution.alpaca_broker
@@ -62,16 +94,10 @@ Market open: True/False
 Positions: []
 ```
 
-### 5. Store remaining secrets
-
-```bash
-python -m config.secrets set allowed-phone-number   # your iPhone's number/email registered with iMessage
-```
-
 (`alpaca-account-id`, `polygon-api-key`, and `dashboard-basic-auth-*` are
 optional/used later — see `config/secrets.SECRET_KEYS` for the full list.)
 
-### 6. Run the bot
+### 7. Run the bot
 
 ```bash
 source venv/bin/activate
@@ -79,17 +105,24 @@ python main.py
 ```
 
 This initializes the database, starts the APScheduler jobs (strategy
-scans, kill-switch checks, EOD report), sends a startup iMessage, and
+scans, kill-switch checks, EOD report), sends a startup Telegram message, and
 polls for inbound commands (STATUS, PAUSE, BUY, etc.) every 10 seconds.
-Press Ctrl+C to stop (sends a shutdown alert and exits cleanly).
 
-### 7. Dashboard
+To stop cleanly (sends shutdown alert and exits):
+
+```bash
+kill -INT $(cat data/bot.pid)
+```
+
+Or send `KILL` via Telegram to shut down the bot remotely.
+
+### 8. Dashboard
 
 ```bash
 streamlit run dashboard/app.py
 ```
 
-### 8. Wake-on-LAN + auto-shutdown (Mac + Raspberry Pi)
+### 9. Wake-on-LAN + auto-shutdown (Mac + Raspberry Pi)
 
 To run unattended on a schedule (Pi wakes the Mac before market open, the
 bot runs during market hours, and the Mac shuts down after the EOD report):
@@ -128,7 +161,7 @@ app/
 ├── scheduler/      # APScheduler job definitions
 ├── backtest/       # historical simulation engine
 ├── dashboard/      # Streamlit monitoring UI
-├── alerts/         # iMessage / WhatsApp notifications
+├── alerts/         # iMessage / WhatsApp / Telegram notifications
 ├── commands/       # inbound message command parser + handler
 ├── monitoring/     # transaction ledger (audit log)
 ├── webhook/        # Twilio webhook receiver (AWS only)

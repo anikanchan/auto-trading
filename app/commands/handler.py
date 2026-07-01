@@ -2,8 +2,8 @@
 Command handler — executes parsed Commands and returns a text reply.
 
 This is the brains of the two-way messaging interface: STATUS, PAUSE,
-RESUME, FLATTEN, REPORT, HISTORY, RISK, STOP, BUY, SELL, HELP, plus the
-YES/NO confirmation flow for manual BUY/SELL orders.
+RESUME, FLATTEN, REPORT, HISTORY, RISK, STOP, KILL, BUY, SELL, HELP, plus
+the YES/NO confirmation flow for manual BUY/SELL orders.
 
 The messaging transport (iMessage polling/sending) is wired up separately
 and simply calls `CommandHandler.handle(text)` for each inbound message
@@ -13,6 +13,9 @@ from the allowed phone number, then sends the returned string back.
 from __future__ import annotations
 
 import datetime as dt
+import os
+import signal
+from typing import Callable
 
 from commands.parser import Command, CommandParseError, parse_command
 from db.models import Trade, get_session
@@ -29,6 +32,7 @@ HELP_TEXT = (
     "HISTORY [7D|<N>D|YYYY-MM-DD..YYYY-MM-DD] - historical report\n"
     "RISK <param> <value> - update a risk parameter (e.g. RISK MAXPOS 3%)\n"
     "STOP <ticker> - stop trading a specific symbol\n"
+    "KILL [instance] - shut down all instances, or a specific one (e.g. KILL MBAir)\n"
     "BUY <ticker> <qty> [MAX <price>] - buy (limit if MAX given)\n"
     "SELL <ticker> <qty> [MIN <price>] - sell (limit if MIN given)\n"
     "BUY <ticker> <qty> DAY <price> - watch today, buy when price <= target (seeks lower)\n"
@@ -47,11 +51,12 @@ RISK_PARAM_MAP = {
 
 
 class CommandHandler:
-    def __init__(self, scheduler: TradingScheduler) -> None:
+    def __init__(self, scheduler: TradingScheduler, instance_name: str = "Bot") -> None:
         self.scheduler = scheduler
         self.order_manager = scheduler.order_manager
         self.broker = self.order_manager.broker
         self.pending_order: dict | None = None
+        self.instance_name = instance_name
 
     def handle(self, text: str) -> str:
         try:
@@ -119,6 +124,14 @@ class CommandHandler:
 
     def _handle_report(self, command: Command) -> str:
         return self.scheduler.run_eod_report()
+
+    def _handle_kill(self, command: Command) -> str:
+        target = command.args.get("target")
+        if target and target.upper() != self.instance_name.upper():
+            return ""
+        ledger.log_event(ledger.CATEGORY_SYSTEM, "KILL command received — shutting down")
+        os.kill(os.getpid(), signal.SIGINT)
+        return f"[{self.instance_name}] Shutting down..."
 
     def _handle_stop(self, command: Command) -> str:
         symbol = command.args["symbol"]

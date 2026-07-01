@@ -76,7 +76,7 @@ def build_app() -> tuple[TradingScheduler, CommandHandler, Messenger]:
         confirm_callback=messenger.confirm_order_callback,
         day_order_notify=messenger.send,
     )
-    command_handler = CommandHandler(scheduler)
+    command_handler = CommandHandler(scheduler, instance_name=get_config("instance_name", "Bot"))
 
     return scheduler, command_handler, messenger
 
