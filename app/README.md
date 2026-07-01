@@ -114,6 +114,8 @@ To stop cleanly (sends shutdown alert and exits):
 kill -INT $(cat data/bot.pid)
 ```
 
+Or send `KILL` via Telegram to shut down the bot remotely.
+
 ### 8. Dashboard
 
 ```bash

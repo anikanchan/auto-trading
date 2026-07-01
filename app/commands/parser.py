@@ -28,6 +28,7 @@ KNOWN_COMMANDS = {
     "HELP",
     "YES",
     "NO",
+    "KILL",
 }
 
 
@@ -59,7 +60,7 @@ def parse_command(text: str) -> Command:
     if name not in KNOWN_COMMANDS:
         return Command(name="UNKNOWN", raw=raw)
 
-    if name in ("STATUS", "PAUSE", "RESUME", "FLATTEN", "REPORT", "HELP", "YES", "NO"):
+    if name in ("STATUS", "PAUSE", "RESUME", "FLATTEN", "REPORT", "HELP", "YES", "NO", "KILL"):
         return Command(name=name, raw=raw)
 
     if name == "STOP":
