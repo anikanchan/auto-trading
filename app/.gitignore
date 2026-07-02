@@ -19,6 +19,7 @@ __pycache__/
 data/*.db
 data/*.sqlite*
 *.log
+*.err
 
 # OS
 .DS_Store
