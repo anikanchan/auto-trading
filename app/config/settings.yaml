@@ -4,7 +4,7 @@
 # See secrets.py for how sensitive values are loaded.
 
 # Instance name — identifies this machine in startup/shutdown messages
-instance_name: "MBAir"             # e.g. "MBAir | "MBPro-Linux"
+instance_name: "MBPro"             # e.g. "MBAir | "MBPro-Linux"
 
 # Trading mode
 mode: paper                      # paper | live

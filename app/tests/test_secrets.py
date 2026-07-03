@@ -1,10 +1,12 @@
 import pytest
 
 import config.loader
+import config.secrets
 from config.secrets import get_alpaca_credentials
 
 
 def test_personal_account_uses_default_keys(monkeypatch):
+    monkeypatch.setattr(config.secrets, "_get_from_keyring", lambda name: None)
     monkeypatch.setattr(
         config.loader, "get", lambda key, default=None: "personal"
         if key == "alpaca.account_type" else default
@@ -15,6 +17,7 @@ def test_personal_account_uses_default_keys(monkeypatch):
 
 
 def test_business_account_uses_business_keys(monkeypatch):
+    monkeypatch.setattr(config.secrets, "_get_from_keyring", lambda name: None)
     monkeypatch.setattr(
         config.loader, "get", lambda key, default=None: "business"
         if key == "alpaca.account_type" else default

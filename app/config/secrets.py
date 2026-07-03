@@ -1,10 +1,9 @@
 """
 Secrets management for the auto-trading app.
 
-Locally (Mac), secrets are stored in the macOS Keychain via the `keyring`
-library. When deployed to AWS, this module can be swapped for a backend
-that reads from AWS Secrets Manager (env vars injected by ECS) without
-changing any calling code.
+Lookup order:
+  1. OS keyring — macOS Keychain on macOS, SecretService/keyrings.alt on Linux
+  2. Environment variable AUTOTRADING_<NAME>, or app/.env file
 
 Usage:
     from config.secrets import get_secret
@@ -92,25 +91,29 @@ def _get_from_env(name: str) -> str | None:
 def _get_from_keyring(name: str) -> str | None:
     try:
         import keyring
+        import keyring.errors
     except ImportError:
         return None
-    return keyring.get_password(SERVICE_NAME, name)
+    try:
+        return keyring.get_password(SERVICE_NAME, name)
+    except keyring.errors.NoKeyringError:
+        return None
 
 
 def get_secret(name: str, required: bool = True) -> str | None:
     """Retrieve a secret by name.
 
     Lookup order:
-      1. Environment variable (AUTOTRADING_<NAME>) — useful for containers/CI
-      2. macOS Keychain via `keyring`
+      1. OS keyring — macOS Keychain on macOS, SecretService/keyrings.alt on Linux
+      2. Environment variable (AUTOTRADING_<NAME>) or app/.env file
 
     Raises SecretNotFoundError if `required` is True and the secret isn't found.
     """
-    value = _get_from_env(name)
+    value = _get_from_keyring(name)
     if value is not None:
         return value
 
-    value = _get_from_keyring(name)
+    value = _get_from_env(name)
     if value is not None:
         return value
 
@@ -123,14 +126,14 @@ def get_secret(name: str, required: bool = True) -> str | None:
 
 
 def set_secret(name: str, value: str) -> None:
-    """Store a secret in the macOS Keychain."""
+    """Store a secret in the OS keyring."""
     import keyring
 
     keyring.set_password(SERVICE_NAME, name, value)
 
 
 def delete_secret(name: str) -> None:
-    """Remove a secret from the macOS Keychain."""
+    """Remove a secret from the OS keyring."""
     import keyring
 
     keyring.delete_password(SERVICE_NAME, name)
